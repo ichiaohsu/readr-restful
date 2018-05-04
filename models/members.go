@@ -13,41 +13,41 @@ import (
 var MemberStatus map[string]interface{}
 
 type Member struct {
-	ID       int64      `json:"id" db:"id"`
-	MemberID string     `json:"member_id" db:"member_id"`
-	UUID     string     `json:"uuid" db:"uuid"`
-	Points   NullInt    `json:"points" db:"points"`
-	Name     NullString `json:"name" db:"name"`
-	Nickname NullString `json:"nickname" db:"nickname"`
+	ID       int64       `json:"id" db:"id"`
+	MemberID string      `json:"member_id" db:"member_id"`
+	UUID     string      `json:"uuid" db:"uuid"`
+	Points   *NullInt    `json:"points,omitempty" db:"points"`
+	Name     *NullString `json:"name,omitempty" db:"name"`
+	Nickname *NullString `json:"nickname,omitempty" db:"nickname"`
 	// Cannot parse Date format
-	Birthday NullTime   `json:"birthday" db:"birthday"`
-	Gender   NullString `json:"gender" db:"gender"`
-	Work     NullString `json:"work" db:"work"`
-	Mail     NullString `json:"mail" db:"mail"`
+	Birthday *NullTime   `json:"birthday,omitempty" db:"birthday"`
+	Gender   *NullString `json:"gender,omitempty" db:"gender"`
+	Work     *NullString `json:"work,omitempty" db:"work"`
+	Mail     *NullString `json:"mail,omitempty" db:"mail"`
 
-	RegisterMode NullString `json:"register_mode" db:"register_mode"`
-	SocialID     NullString `json:"social_id,omitempty" db:"social_id"`
-	TalkID       NullString `json:"talk_id" db:"talk_id"`
+	RegisterMode *NullString `json:"register_mode,omitempty" db:"register_mode"`
+	SocialID     *NullString `json:"social_id,omitempty,omitempty" db:"social_id"`
+	TalkID       *NullString `json:"talk_id,omitempty" db:"talk_id"`
 
-	CreatedAt NullTime   `json:"created_at" db:"created_at"`
-	UpdatedAt NullTime   `json:"updated_at" db:"updated_at"`
-	UpdatedBy NullInt    `json:"updated_by" db:"updated_by"`
+	CreatedAt *NullTime  `json:"created_at,omitempty" db:"created_at"`
+	UpdatedAt *NullTime  `json:"updated_at,omitempty" db:"updated_at"`
+	UpdatedBy *NullInt   `json:"updated_by,omitempty" db:"updated_by"`
 	Password  NullString `json:"-" db:"password"`
 	Salt      NullString `json:"-" db:"salt"`
 	// Ignore password JSON marshall for now
 
-	Description  NullString `json:"description" db:"description"`
-	ProfileImage NullString `json:"profile_image" db:"profile_image"`
-	Identity     NullString `json:"identity" db:"identity"`
+	Description  *NullString `json:"description,omitempty" db:"description"`
+	ProfileImage *NullString `json:"profile_image,omitempty" db:"profile_image"`
+	Identity     *NullString `json:"identity,omitempty" db:"identity"`
 
-	Role   NullInt `json:"role" db:"role"`
-	Active NullInt `json:"active" db:"active"`
+	Role   *NullInt `json:"role,omitempty" db:"role"`
+	Active *NullInt `json:"active,omitempty" db:"active"`
 
-	CustomEditor NullBool `json:"custom_editor" db:"custom_editor"`
-	HideProfile  NullBool `json:"hide_profile" db:"hide_profile"`
-	ProfilePush  NullBool `json:"profile_push" db:"profile_push"`
-	PostPush     NullBool `json:"post_push" db:"post_push"`
-	CommentPush  NullBool `json:"comment_push" db:"comment_push"`
+	CustomEditor *NullBool `json:"custom_editor,omitempty" db:"custom_editor"`
+	HideProfile  *NullBool `json:"hide_profile,omitempty" db:"hide_profile"`
+	ProfilePush  *NullBool `json:"profile_push,omitempty" db:"profile_push"`
+	PostPush     *NullBool `json:"post_push,omitempty" db:"post_push"`
+	CommentPush  *NullBool `json:"comment_push,omitempty" db:"comment_push"`
 }
 
 // Separate API and Member struct

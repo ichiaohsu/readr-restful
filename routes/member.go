@@ -106,19 +106,19 @@ func (r *memberHandler) Post(c *gin.Context) {
 		member.MemberID = member.Mail.String
 	}
 
-	if !member.CreatedAt.Valid {
+	if (member.CreatedAt != nil) && (!member.CreatedAt.Valid) {
 		member.CreatedAt.Time = time.Now()
 		member.CreatedAt.Valid = true
 	}
-	if !member.UpdatedAt.Valid {
+	if (member.UpdatedAt != nil) && (!member.UpdatedAt.Valid) {
 		member.UpdatedAt.Time = time.Now()
 		member.UpdatedAt.Valid = true
 	}
-	if !member.Active.Valid {
-		member.Active = models.NullInt{1, true}
+	if (member.Active != nil) && (!member.Active.Valid) {
+		member.Active = &models.NullInt{Int: 1, Valid: true}
 	}
-	if !member.Points.Valid {
-		member.Points = models.NullInt{0, true}
+	if (member.Points != nil) && (!member.Points.Valid) {
+		member.Points = &models.NullInt{Int: 0, Valid: true}
 	}
 	uuid, err := utils.NewUUIDv4()
 	if err != nil {
@@ -151,11 +151,11 @@ func (r *memberHandler) Put(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"Error": "Invalid Member Data"})
 		return
 	}
-	if member.CreatedAt.Valid {
+	if (member.CreatedAt != nil) && (member.CreatedAt.Valid) {
 		member.CreatedAt.Time = time.Time{}
 		member.CreatedAt.Valid = false
 	}
-	if !member.UpdatedAt.Valid {
+	if (member.UpdatedAt != nil) && (!member.UpdatedAt.Valid) {
 		member.UpdatedAt.Time = time.Now()
 		member.UpdatedAt.Valid = true
 	}

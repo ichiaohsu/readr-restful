@@ -27,38 +27,38 @@ var mockMembers = []models.Member{
 		ID:           1,
 		MemberID:     "superman@mirrormedia.mg",
 		UUID:         "3d64e480-3e30-11e8-b94b-cfe922eb374f",
-		Nickname:     models.NullString{String: "readr", Valid: true},
-		Active:       models.NullInt{Int: 1, Valid: true},
-		UpdatedAt:    models.NullTime{Time: time.Date(2017, 6, 8, 16, 27, 52, 0, time.UTC), Valid: true},
-		Mail:         models.NullString{String: "superman@mirrormedia.mg", Valid: true},
-		CustomEditor: models.NullBool{Bool: true, Valid: true},
-		Role:         models.NullInt{Int: 9, Valid: true},
-		Points:       models.NullInt{Int: 0, Valid: true},
+		Nickname:     &models.NullString{String: "readr", Valid: true},
+		Active:       &models.NullInt{Int: 1, Valid: true},
+		UpdatedAt:    &models.NullTime{Time: time.Date(2017, 6, 8, 16, 27, 52, 0, time.UTC), Valid: true},
+		Mail:         &models.NullString{String: "superman@mirrormedia.mg", Valid: true},
+		CustomEditor: &models.NullBool{Bool: true, Valid: true},
+		Role:         &models.NullInt{Int: 9, Valid: true},
+		Points:       &models.NullInt{Int: 0, Valid: true},
 	},
 	models.Member{
 		ID:        2,
 		MemberID:  "test6743@test.test",
 		UUID:      "3d651126-3e30-11e8-b94b-cfe922eb374f",
-		Nickname:  models.NullString{String: "yeahyeahyeah", Valid: true},
-		Active:    models.NullInt{Int: 0, Valid: true},
-		Birthday:  models.NullTime{Time: time.Date(2001, 1, 3, 0, 0, 0, 0, time.UTC), Valid: true},
-		UpdatedAt: models.NullTime{Time: time.Date(2017, 11, 11, 23, 11, 37, 0, time.UTC), Valid: true},
-		Mail:      models.NullString{String: "Lulu_Brakus@yahoo.com", Valid: true},
-		Role:      models.NullInt{Int: 3, Valid: true},
-		Points:    models.NullInt{Int: 0, Valid: true},
+		Nickname:  &models.NullString{String: "yeahyeahyeah", Valid: true},
+		Active:    &models.NullInt{Int: 0, Valid: true},
+		Birthday:  &models.NullTime{Time: time.Date(2001, 1, 3, 0, 0, 0, 0, time.UTC), Valid: true},
+		UpdatedAt: &models.NullTime{Time: time.Date(2017, 11, 11, 23, 11, 37, 0, time.UTC), Valid: true},
+		Mail:      &models.NullString{String: "Lulu_Brakus@yahoo.com", Valid: true},
+		Role:      &models.NullInt{Int: 3, Valid: true},
+		Points:    &models.NullInt{Int: 0, Valid: true},
 	},
 	models.Member{
 		ID:        3,
 		MemberID:  "Barney.Corwin@hotmail.com",
 		UUID:      "3d6512e8-3e30-11e8-b94b-cfe922eb374f",
-		Nickname:  models.NullString{String: "reader", Valid: true},
-		Active:    models.NullInt{Int: 0, Valid: true},
-		Gender:    models.NullString{String: "M", Valid: true},
-		UpdatedAt: models.NullTime{Time: time.Date(2017, 1, 3, 19, 32, 37, 0, time.UTC), Valid: true},
-		Birthday:  models.NullTime{Time: time.Date(1939, 11, 9, 0, 0, 0, 0, time.UTC), Valid: true},
-		Mail:      models.NullString{String: "Barney.Corwin@hotmail.com", Valid: true},
-		Role:      models.NullInt{Int: 1, Valid: true},
-		Points:    models.NullInt{Int: 0, Valid: true},
+		Nickname:  &models.NullString{String: "reader", Valid: true},
+		Active:    &models.NullInt{Int: 0, Valid: true},
+		Gender:    &models.NullString{String: "M", Valid: true},
+		UpdatedAt: &models.NullTime{Time: time.Date(2017, 1, 3, 19, 32, 37, 0, time.UTC), Valid: true},
+		Birthday:  &models.NullTime{Time: time.Date(1939, 11, 9, 0, 0, 0, 0, time.UTC), Valid: true},
+		Mail:      &models.NullString{String: "Barney.Corwin@hotmail.com", Valid: true},
+		Role:      &models.NullInt{Int: 1, Valid: true},
+		Points:    &models.NullInt{Int: 0, Valid: true},
 	},
 }
 
@@ -97,12 +97,12 @@ func (a *mockMemberAPI) GetMembers(req *models.MemberArgs) (result []models.Memb
 	switch req.Sorting {
 	case "updated_at":
 		sort.SliceStable(result, func(i, j int) bool {
-			return result[i].UpdatedAt.Before(result[j].UpdatedAt)
+			return result[i].UpdatedAt.Before(*result[j].UpdatedAt)
 		})
 		err = nil
 	case "-updated_at":
 		sort.SliceStable(result, func(i, j int) bool {
-			return result[i].UpdatedAt.After(result[j].UpdatedAt)
+			return result[i].UpdatedAt.After(*result[j].UpdatedAt)
 		})
 		err = nil
 	}
@@ -128,7 +128,7 @@ func (a *mockMemberAPI) GetMember(idType string, id string) (result models.Membe
 
 func (a *mockMemberAPI) InsertMember(m models.Member) (id int, err error) {
 	for _, member := range mockMemberDS {
-		if member.MemberID == m.MemberID {
+		if member.MemberID == m.MemberID || member.ID == m.ID {
 			return 0, errors.New("Duplicate entry")
 		}
 	}
@@ -155,7 +155,7 @@ func (a *mockMemberAPI) DeleteMember(idType string, id string) error {
 	intID, _ := strconv.Atoi(id)
 	for index, value := range mockMemberDS {
 		if int64(intID) == value.ID {
-			mockMemberDS[index].Active = models.NullInt{Int: int64(models.MemberStatus["delete"].(float64)), Valid: true}
+			mockMemberDS[index].Active = &models.NullInt{Int: int64(models.MemberStatus["delete"].(float64)), Valid: true}
 			return nil
 		}
 	}
@@ -168,7 +168,7 @@ func (a *mockMemberAPI) UpdateAll(ids []int64, active int) (err error) {
 	for _, value := range ids {
 		for i, v := range mockMemberDS {
 			if v.ID == value {
-				mockMemberDS[i].Active = models.NullInt{Int: int64(active), Valid: true}
+				mockMemberDS[i].Active = &models.NullInt{Int: int64(active), Valid: true}
 				result = append(result, i)
 			}
 		}
@@ -202,9 +202,9 @@ func (a *mockMemberAPI) Count(req *models.MemberArgs) (result int, err error) {
 
 func (a *mockMemberAPI) GetUUIDsByNickname(key string, roles map[string][]int) (result []models.NicknameUUID, err error) {
 	for _, v := range mockMemberDS {
-		if v.Nickname.Valid {
+		if (v.Nickname != nil) && (v.Nickname.Valid) {
 			if matched, err := regexp.MatchString(key, v.Nickname.String); err == nil && matched {
-				result = append(result, models.NicknameUUID{UUID: v.UUID, Nickname: v.Nickname})
+				result = append(result, models.NicknameUUID{UUID: v.UUID, Nickname: *v.Nickname})
 			}
 		}
 	}
@@ -245,9 +245,9 @@ func TestRouteMembers(t *testing.T) {
 		for i, resp := range Response.Items {
 			exp := expected[i]
 			if resp.ID == exp.ID &&
-				resp.Active == exp.Active &&
-				resp.UpdatedAt == exp.UpdatedAt &&
-				resp.Role == exp.Role {
+				*resp.Active == *exp.Active &&
+				*resp.UpdatedAt == *exp.UpdatedAt &&
+				*resp.Role == *exp.Role {
 				continue
 			}
 			t.Errorf("%s, expect to get %v, but %v ", tc.name, exp, resp)

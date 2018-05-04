@@ -166,18 +166,18 @@ func (r *authHandler) userRegister(c *gin.Context) {
 
 		member.Salt = models.NullString{string(salt), true}
 		member.Password = models.NullString{string(hpw), true}
-		member.Active = models.NullInt{0, true}
-		member.Points = models.NullInt{0, true}
+		member.Active = &models.NullInt{0, true}
+		member.Points = &models.NullInt{0, true}
 
 	} else {
 
-		if member.SocialID.String != member.MemberID {
+		if (member.SocialID == nil) || (member.SocialID.String != member.MemberID) {
 			c.JSON(http.StatusBadRequest, gin.H{"Error": "Bad Request"})
 			return
 		}
 
-		member.Active = models.NullInt{1, true}
-		member.Points = models.NullInt{0, true}
+		member.Active = &models.NullInt{1, true}
+		member.Points = &models.NullInt{0, true}
 	}
 
 	// 4. fill in data and defaults

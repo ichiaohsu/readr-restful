@@ -115,20 +115,20 @@ func (t *TaggedPostMember) MarshalJSON() ([]byte, error) {
 
 // UpdatedBy wraps Member for embedded field updated_by
 // in the usage of anonymous struct in PostMember
-type MemberBasic struct {
-	ID           int64      `json:"id" db:"id"`
-	UUID         NullString `json:"uuid" db:"uuid"`
-	Nickname     NullString `json:"nickname" db:"nickname"`
-	ProfileImage NullString `json:"profile_image" db:"profile_image"`
-	Description  NullString `json:"description" db:"description"`
-	Role         NullInt    `json:"role" db:"role"`
-}
+// type MemberBasic struct {
+// 	ID           int64      `json:"id" db:"id"`
+// 	UUID         NullString `json:"uuid" db:"uuid"`
+// 	Nickname     NullString `json:"nickname" db:"nickname"`
+// 	ProfileImage NullString `json:"profile_image" db:"profile_image"`
+// 	Description  NullString `json:"description" db:"description"`
+// 	Role         NullInt    `json:"role" db:"role"`
+// }
 
 // type UpdatedBy Member
 type PostMember struct {
 	Post
-	Member    MemberBasic `json:"author" db:"author"`
-	UpdatedBy MemberBasic `json:"updated_by" db:"updated_by"`
+	Member    Member `json:"author" db:"author"`
+	UpdatedBy Member `json:"updated_by" db:"updated_by"`
 }
 
 type PostUpdateArgs struct {
@@ -233,7 +233,8 @@ func (p *PostArgs) parse() (restricts string, values []interface{}) {
 func (a *postAPI) GetPosts(req *PostArgs) (result []TaggedPostMember, err error) {
 
 	restricts, values := req.parse()
-	tags := getStructDBTags("full", MemberBasic{})
+	// tags := getStructDBTags("full", Member{})
+	tags := []string{"id", "member_id", "nickname", "profile_image", "description", "role"}
 	authorField := makeFieldString("get", `author.%s "author.%s"`, tags)
 	updatedByField := makeFieldString("get", `updated_by.%s "updated_by.%s"`, tags)
 
@@ -282,7 +283,9 @@ func (a *postAPI) GetPosts(req *PostArgs) (result []TaggedPostMember, err error)
 func (a *postAPI) GetPost(id uint32) (TaggedPostMember, error) {
 
 	post := TaggedPostMember{}
-	tags := getStructDBTags("full", MemberBasic{})
+	// tags := getStructDBTags("full", MemberBasic{})
+	tags := []string{"id", "member_id", "nickname", "profile_image", "description", "role"}
+
 	author := makeFieldString("get", `author.%s "author.%s"`, tags)
 	updatedBy := makeFieldString("get", `updated_by.%s "updated_by.%s"`, tags)
 

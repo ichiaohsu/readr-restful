@@ -248,10 +248,10 @@ func TestRoutePost(t *testing.T) {
 	var postTest mockPostAPI
 
 	posts := []models.TaggedPostMember{
-		{PostMember: models.PostMember{Post: mockPostDS[0], Member: memberToBasic(mockMembers[0]), UpdatedBy: memberToBasic(mockMembers[0])}},
-		{PostMember: models.PostMember{Post: mockPostDS[1], Member: memberToBasic(mockMembers[1]), UpdatedBy: models.MemberBasic{}}},
-		{PostMember: models.PostMember{Post: mockPostDS[2], Member: memberToBasic(mockMembers[2]), UpdatedBy: models.MemberBasic{}}},
-		{PostMember: models.PostMember{Post: mockPostDS[3], Member: memberToBasic(mockMembers[2]), UpdatedBy: models.MemberBasic{}}},
+		{PostMember: models.PostMember{Post: mockPostDS[0], Member: mockMembers[0], UpdatedBy: mockMembers[0]}},
+		{PostMember: models.PostMember{Post: mockPostDS[1], Member: mockMembers[1], UpdatedBy: models.Member{}}},
+		{PostMember: models.PostMember{Post: mockPostDS[2], Member: mockMembers[2], UpdatedBy: models.Member{}}},
+		{PostMember: models.PostMember{Post: mockPostDS[3], Member: mockMembers[2], UpdatedBy: models.Member{}}},
 	}
 
 	teststep := []TestStep{
@@ -389,8 +389,8 @@ func TestRoutePost(t *testing.T) {
 			if len(Response.Items) != 0 && len(expected) != 0 {
 				for i := range expected {
 					if (Response.Items[i].PostMember.Post.ID != expected[i].PostMember.Post.ID) ||
-						(Response.Items[i].PostMember.Member != expected[i].PostMember.Member) ||
-						(Response.Items[i].PostMember.UpdatedBy != expected[i].PostMember.UpdatedBy) {
+						(Response.Items[i].PostMember.Member.ID != expected[i].PostMember.Member.ID) ||
+						(Response.Items[i].PostMember.UpdatedBy.ID != expected[i].PostMember.UpdatedBy.ID) {
 						t.Errorf("%s, %vth round expect to get \n%v\n , but get \n%v\n", tc.name, i, expected[i], Response.Items[i])
 					}
 				}
@@ -419,13 +419,13 @@ type ExpectResp struct {
 	err      string
 }
 
-func memberToBasic(m models.Member) (result models.MemberBasic) {
-	result = models.MemberBasic{
-		ID:           m.ID,
-		Nickname:     m.Nickname,
-		ProfileImage: m.ProfileImage,
-		Description:  m.Description,
-		Role:         m.Role,
-	}
-	return result
-}
+// func memberToBasic(m models.Member) (result models.MemberBasic) {
+// 	result = models.MemberBasic{
+// 		ID:           m.ID,
+// 		Nickname:     m.Nickname,
+// 		ProfileImage: m.ProfileImage,
+// 		Description:  m.Description,
+// 		Role:         m.Role,
+// 	}
+// 	return result
+// }
