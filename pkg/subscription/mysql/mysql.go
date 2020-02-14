@@ -35,6 +35,9 @@ FindTags:
 
 		// Use Type() to get struct tags
 		tag := value.Type().Field(i).Tag.Get(tagname)
+		if tag == "" || len(tag) == 0 {
+			continue
+		}
 		// Skip fields if there are denoted
 		if len(skipFields) > 0 {
 
@@ -71,9 +74,9 @@ FindTags:
 			default:
 				fmt.Printf("unrecognised format: %s value:%v\n", value.Field(i).Type(), fieldValue)
 				// TODO: restrict the judgement to certain kind with Kind(), or it might panic
-				if fieldValue.Len() > 0 {
-					columns = append(columns, tag)
-				}
+				// if fieldValue.Len() > 0 {
+				columns = append(columns, tag)
+				// }
 			}
 		}
 	}
@@ -92,41 +95,24 @@ type SubscriptionService struct {
 // GetSubscriptions could list user subscriptions
 func (s *SubscriptionService) GetSubscriptions(params subscription.ListFilter) (results []subscription.Subscription, err error) {
 
-	query, values, err := params.Select()
-	err = s.DB.Select(&results, query, values...)
-	if err != nil {
-		log.Printf("Failed to get subscriptions from MySQL: %s\n", err.Error())
-		return nil, err
-	}
+	// 	query, values, err := params.Select()
+	// 	err = s.DB.Select(&results, query, values...)
+	// 	if err != nil {
+	// 		log.Printf("Failed to get subscriptions from MySQL: %s\n", err.Error())
+	// 		return nil, err
+	// 	}
 	return results, nil
 }
 
 // CreateSubscription will make first payment, and store infos for recurring payment in db
 func (s *SubscriptionService) CreateSubscription(p subscription.Subscription) (err error) {
 
-	// Setup payment service
-	s.Payment, err = payment.NewOnetimeProvider(p.PaymentService)
-
-	// Setup invoice service
-	p.InvoiceInfos["amount"] = p.Amount
-	s.Invoice, err = invoice.NewInvoiceProvider(p.InvoiceService, p.InvoiceInfos)
 	s.MailService = &mail.MailService{}
 
-	if err != nil {
-		log.Printf("recurring pay error assigning invoice service:%v\n", err)
-		return err
-	}
-	if err = s.Invoice.Validate(); err != nil {
-		log.Printf("invoice validated error:%s\n", err.Error())
-		return err
-	}
-
-	// Set status to init
-	p.Status = subscription.StatusInit
 	// Create subscription records
-	tags := GetStructTags("full", "db", p)
+	tags := append(GetStructTags("full", "db", p.SubscriptionInfos), GetStructTags("full", "db", p)...)
 	query := fmt.Sprintf(`INSERT INTO subscriptions (%s) VALUES (:%s)`, strings.Join(tags, ","), strings.Join(tags, ",:"))
-
+	fmt.Printf("Create Subscription query:%s\n, tag:%v\n", query, tags)
 	result, err := s.DB.NamedExec(query, p)
 	if err != nil {
 		return err
@@ -136,12 +122,9 @@ func (s *SubscriptionService) CreateSubscription(p subscription.Subscription) (e
 		log.Printf("Fail to get last inserted ID when insert a subscription: %v", err)
 		return err
 	}
+	fmt.Println(subID)
 
-	// Pay for the first time, set remember = true to get card_key & card_token
-	p.PaymentInfos["amount"] = p.Amount
-	p.PaymentInfos["remember"] = true
-
-	_, p.PaymentInfos, err = s.Payment.Pay(p.PaymentInfos)
+	err = p.PaymentInfos.Pay()
 	if err != nil {
 		s.MailService.Set(mail.Mail{To: []string{p.Email}, Subject: "Huston! We have a problem!", Body: err.Error()})
 		if err = s.MailService.Send(); err != nil {
@@ -149,36 +132,39 @@ func (s *SubscriptionService) CreateSubscription(p subscription.Subscription) (e
 		}
 		return err
 	}
+	// fmt.Println(token)
 
-	_, err = s.Invoice.Create()
+	// Create invoice
+	resp, err := p.InvoiceInfos.Create()
 	if err != nil {
 		log.Printf("error creating invoice:%v\n", err)
 		s.MailService.Set(mail.Mail{To: []string{p.Email}, Subject: "Huston! We have a problem!", Body: err.Error()})
 		if err = s.MailService.Send(); err != nil {
 			return err
 		}
-		return err
 	}
-
+	fmt.Println(resp)
+	// _, err = payment.NewRecurringProvider(p.PaymentService)
+	token, err := p.PaymentInfos.Token()
+	fmt.Printf("token:%v\n", token)
 	// update payment token
-	update := subscription.Subscription{ID: uint64(subID), Status: subscription.StatusOK, UpdatedAt: rrsql.NullTime{Time: time.Now(), Valid: true}, LastPaidAt: rrsql.NullTime{Time: time.Now(), Valid: true}, PaymentInfos: p.PaymentInfos}
+	update := subscription.Subscription{SubscriptionInfos: subscription.SubscriptionInfos{ID: uint64(subID), Status: subscription.StatusOK, UpdatedAt: rrsql.NullTime{Time: time.Now(), Valid: true}, LastPaidAt: rrsql.NullTime{Time: time.Now(), Valid: true}}, PaymentInfos: token}
 	err = s.UpdateSubscriptions(update)
 
 	if err != nil {
 		fmt.Println(err.Error())
 		return err
 	}
-	// Create invoice
 	return nil
 }
 
 // UpdateSubscriptions updates infos about a subsciption
 func (s *SubscriptionService) UpdateSubscriptions(p subscription.Subscription) error {
 
-	tags := GetStructTags("non-null", "db", p)
+	tags := append(GetStructTags("non-null", "db", p.SubscriptionInfos), GetStructTags("non-null", "db", p)...)
 	fields := rrsql.MakeFieldString("update", `%s = :%s`, tags)
 	query := fmt.Sprintf(`UPDATE subscriptions SET %s WHERE id = :id`, strings.Join(fields, ", "))
-
+	fmt.Printf("Update tags:%v\n, query:%s\n", tags, query)
 	_, err := s.DB.NamedExec(query, p)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -190,50 +176,50 @@ func (s *SubscriptionService) UpdateSubscriptions(p subscription.Subscription) e
 // RoutinePay accepts user subscription infos, request recurring pay API, and updates updated_at, last_pay_at.
 func (s *SubscriptionService) RoutinePay(subscribers []subscription.Subscription) (err error) {
 
-	for _, p := range subscribers {
-		// Initializing payment service
-		s.Payment, err = payment.NewRecurringProvider(p.PaymentService)
-		if err != nil {
-			return err
-		}
-		p.PaymentInfos["amount"] = p.Amount
-		p.InvoiceInfos["amount"] = p.Amount
+	// 	for _, p := range subscribers {
+	// 		// Initializing payment service
+	// 		s.Payment, err = payment.NewRecurringProvider(p.PaymentService)
+	// 		if err != nil {
+	// 			return err
+	// 		}
+	// 		p.PaymentInfos["amount"] = p.Amount
+	// 		p.InvoiceInfos["amount"] = p.Amount
 
-		s.Invoice, err = invoice.NewInvoiceProvider(p.InvoiceService, p.InvoiceInfos)
-		if err != nil {
-			log.Printf("recurring pay error assigning invoice service:%v\n", err)
-			return err
-		}
-		if err = s.Invoice.Validate(); err != nil {
-			return err
-		}
-		s.MailService = &mail.MailService{}
+	// 		s.Invoice, err = invoice.NewInvoiceProvider(p.InvoiceService, p.InvoiceInfos)
+	// 		if err != nil {
+	// 			log.Printf("recurring pay error assigning invoice service:%v\n", err)
+	// 			return err
+	// 		}
+	// 		if err = s.Invoice.Validate(); err != nil {
+	// 			return err
+	// 		}
+	// 		s.MailService = &mail.MailService{}
 
-		_, _, err := s.Payment.Pay(p.PaymentInfos)
-		if err != nil {
-			log.Printf("recurring pay error paying:%v\n", err)
-			s.MailService.Set(mail.Mail{To: []string{p.Email}, Subject: "Huston! We have a problem!", Body: err.Error()})
-			if err = s.MailService.Send(); err != nil {
-				return err
-			}
-			return err
-		}
-		update := subscription.Subscription{ID: uint64(p.ID), UpdatedAt: rrsql.NullTime{Time: time.Now(), Valid: true}, LastPaidAt: rrsql.NullTime{Time: time.Now(), Valid: true}}
-		err = s.UpdateSubscriptions(update)
-		if err != nil {
-			return err
-		}
+	// 		_, _, err := s.Payment.Pay(p.PaymentInfos)
+	// 		if err != nil {
+	// 			log.Printf("recurring pay error paying:%v\n", err)
+	// 			s.MailService.Set(mail.Mail{To: []string{p.Email}, Subject: "Huston! We have a problem!", Body: err.Error()})
+	// 			if err = s.MailService.Send(); err != nil {
+	// 				return err
+	// 			}
+	// 			return err
+	// 		}
+	// 		update := subscription.Subscription{ID: uint64(p.ID), UpdatedAt: rrsql.NullTime{Time: time.Now(), Valid: true}, LastPaidAt: rrsql.NullTime{Time: time.Now(), Valid: true}}
+	// 		err = s.UpdateSubscriptions(update)
+	// 		if err != nil {
+	// 			return err
+	// 		}
 
-		_, err = s.Invoice.Create()
-		if err != nil {
-			s.MailService.Set(mail.Mail{To: []string{p.Email}, Subject: "Huston! We have a problem!", Body: err.Error()})
-			if err = s.MailService.Send(); err != nil {
-				return err
-			}
-			log.Printf("recurring pay error creating invoice:%v\n", err)
-			return err
-		}
+	// 		_, err = s.Invoice.Create()
+	// 		if err != nil {
+	// 			s.MailService.Set(mail.Mail{To: []string{p.Email}, Subject: "Huston! We have a problem!", Body: err.Error()})
+	// 			if err = s.MailService.Send(); err != nil {
+	// 				return err
+	// 			}
+	// 			log.Printf("recurring pay error creating invoice:%v\n", err)
+	// 			return err
+	// 		}
 
-	}
+	// 	}
 	return nil
 }

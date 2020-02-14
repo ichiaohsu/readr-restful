@@ -1,31 +1,29 @@
 package payment
 
-import "github.com/readr-media/readr-restful/pkg/payment/tappay"
-
 type Provider interface {
-	Pay(payment map[string]interface{}) (resp map[string]interface{}, token map[string]interface{}, err error)
-}
-
-func NewOnetimeProvider(name string) (p Provider, err error) {
-	switch name {
-	case "tappay":
-		p = tappay.OnetimeClient{}
-		err = nil
-	default:
-		p = tappay.OnetimeClient{}
-		err = nil
-	}
-	return p, err
+	Pay() (err error)
+	Token() (Provider, error)
 }
 
 func NewRecurringProvider(name string) (p Provider, err error) {
 	switch name {
 	case "tappay":
-		p = tappay.RecurringClient{}
-		err = nil
+		fallthrough
 	default:
 		// default using tappay
-		p = tappay.RecurringClient{}
+		p = &PayByCardToken{}
+		err = nil
+	}
+	return p, err
+}
+
+func NewDisposableProvider(name string) (p Provider, err error) {
+	switch name {
+	case "tappay":
+		fallthrough
+	default:
+		// default using tappay
+		p = &PayByPrime{}
 		err = nil
 	}
 	return p, err
