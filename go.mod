@@ -22,6 +22,7 @@ require (
 	github.com/spf13/viper v1.3.2
 	github.com/stretchr/testify v1.2.2
 	golang.org/x/crypto v0.0.0-20190418165655-df01cb2cc480
+	golang.org/x/tools/gopls v0.1.3 // indirect
 	gopkg.in/go-playground/validator.v8 v8.18.2 // indirect
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 )
